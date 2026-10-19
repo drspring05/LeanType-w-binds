@@ -12,6 +12,7 @@ import helium314.keyboard.event.HangulEventDecoder
 import helium314.keyboard.event.HapticEvent
 import helium314.keyboard.event.HardwareEventDecoder
 import helium314.keyboard.event.HardwareKeyboardEventDecoder
+import helium314.keyboard.event.PhysicalKeyRemap
 import helium314.keyboard.event.PhysicalKeyboardLayouts
 import helium314.keyboard.keyboard.internal.keyboard_parser.floris.KeyCode
 import helium314.keyboard.latin.AudioAndHapticFeedbackManager
@@ -75,6 +76,8 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
 
     private val mConsumedPhysicalKeys = HashSet<Int>()
     private val mRemappedShortcutKeys = HashMap<Int, Int>()
+    /** original key codes of remapped keys that were forwarded to the app as the remapped key */
+    private val mForwardedRemappedKeys = HashSet<Int>()
 
     private fun isUnhandledNavigationKey(keyCode: Int): Boolean = when (keyCode) {
         KeyEvent.KEYCODE_PAGE_UP,
@@ -86,7 +89,9 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         else -> false
     }
 
-    override fun onKeyUp(keyCode: Int, keyEvent: KeyEvent): Boolean {
+    override fun onKeyUp(originalKeyCode: Int, originalKeyEvent: KeyEvent): Boolean {
+        val keyEvent = PhysicalKeyRemap.apply(originalKeyEvent, settings.current.mPhysicalKeyRemaps)
+        val keyCode = keyEvent.keyCode
         emojiAltPhysicalKeyDetector.onKeyUp(keyEvent)
         if (!ProductionFlags.IS_HARDWARE_KEYBOARD_SUPPORTED)
             return false
@@ -101,10 +106,16 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         if (mConsumedPhysicalKeys.remove(keyCode)) {
             return true
         }
+        if (mForwardedRemappedKeys.remove(originalKeyCode)) {
+            connection.sendKeyEvent(keyEvent)
+            return true
+        }
         return false
     }
 
-    override fun onKeyDown(keyCode: Int, keyEvent: KeyEvent): Boolean {
+    override fun onKeyDown(originalKeyCode: Int, originalKeyEvent: KeyEvent): Boolean {
+        val keyEvent = PhysicalKeyRemap.apply(originalKeyEvent, settings.current.mPhysicalKeyRemaps)
+        val keyCode = keyEvent.keyCode
         emojiAltPhysicalKeyDetector.onKeyDown(keyEvent)
         if (!ProductionFlags.IS_HARDWARE_KEYBOARD_SUPPORTED)
             return false
@@ -172,6 +183,12 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         if (event.isHandled) {
             latinIME.onEvent(event)
             mConsumedPhysicalKeys.add(keyCode)
+            return true
+        }
+        if (keyCode != originalKeyCode) {
+            // remapped key that is not text input (e.g. Escape, Tab): send the remapped key to the app instead of the original
+            mForwardedRemappedKeys.add(originalKeyCode)
+            connection.sendKeyEvent(keyEvent)
             return true
         }
         return false

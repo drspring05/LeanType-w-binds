@@ -442,6 +442,7 @@ class Settings private constructor() : SharedPreferences.OnSharedPreferenceChang
         const val PREF_SOUND_VOL_MODIFIERS = "sound_vol_modifiers"
         const val PREF_KEY_LONGPRESS_TIMEOUT = "key_longpress_timeout"
         const val PREF_ENABLE_EMOJI_ALT_PHYSICAL_KEY = "enable_emoji_alt_physical_key"
+        const val PREF_PHYSICAL_KEY_REMAPS = "physical_key_remaps"
         const val PREF_GESTURE_PREVIEW_TRAIL = "gesture_preview_trail"
         const val PREF_GESTURE_FLOATING_PREVIEW_TEXT = "gesture_floating_preview_text"
         const val PREF_GESTURE_FLOATING_PREVIEW_DYNAMIC = "gesture_floating_preview_dynamic"
