@@ -176,6 +176,8 @@
     <string name="physical_key_remap_press_key">Press a key</string>
     <string name="physical_key_remap_press_key_hint">Press the physical key you want to remap</string>
     <string name="physical_key_remap_choose_target">Remap %1$s to</string>
+    <string name="physical_key_remap_press_target_hint">Press the key it should become, or pick one from the list</string>
+    <string name="physical_key_remap_pick_from_list">Pick from list</string>
     <string name="prefs_physical_keyboard_suggestion_shortcuts">Physical keyboard suggestion shortcuts</string>
     <string name="prefs_physical_keyboard_suggestion_shortcuts_summary">Select suggestion candidates using keyboard shortcuts and show number badges</string>
     <string name="physical_keyboard_shortcut_disabled">Disabled</string>

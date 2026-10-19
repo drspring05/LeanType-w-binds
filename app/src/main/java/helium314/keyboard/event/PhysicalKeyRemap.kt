@@ -10,8 +10,8 @@ import android.view.KeyEvent
  * Rules are stored in a preference as a comma separated list of "source>target" Android key codes.
  */
 object PhysicalKeyRemap {
-    /** Targets offered in the settings UI. Any Android key code is supported by the parser, this is just the picker list. */
-    val targetKeyCodes = listOf(
+    /** Frequently used targets, shown first in the settings picker. Any Android key code is supported by the parser. */
+    val commonTargetKeyCodes = listOf(
         KeyEvent.KEYCODE_DEL,
         KeyEvent.KEYCODE_FORWARD_DEL,
         KeyEvent.KEYCODE_ESCAPE,
@@ -23,6 +23,19 @@ object PhysicalKeyRemap {
         KeyEvent.KEYCODE_SHIFT_LEFT,
         KeyEvent.KEYCODE_CAPS_LOCK,
     )
+
+    /**
+     * Every Android key code that has a proper name (e.g. KEYCODE_GRAVE), so any key can be a remap target.
+     * Common targets come first, the rest is sorted by name.
+     */
+    val allKeyCodes: List<Int> by lazy {
+        val others = (1..MAX_KEY_CODE)
+            .filter { it !in commonTargetKeyCodes && KeyEvent.keyCodeToString(it).startsWith("KEYCODE_") }
+            .sortedBy { keyName(it) }
+        commonTargetKeyCodes + others
+    }
+
+    private const val MAX_KEY_CODE = 330
 
     fun parse(value: String?): Map<Int, Int> {
         if (value.isNullOrBlank()) return emptyMap()

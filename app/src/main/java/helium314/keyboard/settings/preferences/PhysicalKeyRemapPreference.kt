@@ -52,6 +52,8 @@ fun PhysicalKeyRemapPreference(setting: Setting) {
     var showRules by remember { mutableStateOf(false) }
     var showCapture by remember { mutableStateOf(false) }
     var capturedKey by remember { mutableStateOf<Int?>(null) }
+    var showTargetCapture by remember { mutableStateOf(false) }
+    var showTargetList by remember { mutableStateOf(false) }
 
     fun save(newRules: Map<Int, Int>) {
         rules = newRules
@@ -89,49 +91,88 @@ fun PhysicalKeyRemapPreference(setting: Setting) {
         )
     }
 
+    // step 1: press the key that should be remapped
     if (showCapture) {
-        val focusRequester = remember { FocusRequester() }
-        ConfirmationDialog(
-            onDismissRequest = { showCapture = false },
-            onConfirmed = { showCapture = false },
-            confirmButtonText = null,
-            cancelButtonText = stringResource(android.R.string.cancel),
-            title = { Text(stringResource(R.string.physical_key_remap_press_key)) },
-            content = {
-                LaunchedEffect(Unit) { focusRequester.requestFocus() }
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .focusRequester(focusRequester)
-                        .focusable()
-                        .onPreviewKeyEvent {
-                            val code = it.key.nativeKeyCode
-                            if (it.type == KeyEventType.KeyDown && code != KeyEvent.KEYCODE_BACK && code != KeyEvent.KEYCODE_UNKNOWN) {
-                                capturedKey = code
-                                showCapture = false
-                                true
-                            } else false
-                        }
-                ) {
-                    Text(stringResource(R.string.physical_key_remap_press_key_hint))
-                }
-            }
+        KeyCaptureDialog(
+            title = stringResource(R.string.physical_key_remap_press_key),
+            hint = stringResource(R.string.physical_key_remap_press_key_hint),
+            onDismiss = { showCapture = false },
+            onKey = {
+                capturedKey = it
+                showCapture = false
+                showTargetCapture = true
+            },
         )
     }
 
+    // step 2: press the key it should become, or choose one from the full list of keys
     capturedKey?.let { src ->
-        // keep the source key itself out of the list, mapping a key to itself makes no sense
-        val targets = PhysicalKeyRemap.targetKeyCodes.filter { it != src }
-        ListPickerDialog(
-            onDismissRequest = { capturedKey = null },
-            items = targets,
-            onItemSelected = { dst ->
-                save(rules + (src to dst))
-                capturedKey = null
-            },
-            title = { Text(stringResource(R.string.physical_key_remap_choose_target, PhysicalKeyRemap.keyName(src))) },
-            getItemName = { PhysicalKeyRemap.keyName(it) },
-            showRadioButtons = false,
-        )
+        fun finish(dst: Int) {
+            // mapping a key to itself makes no sense
+            if (dst != src) save(rules + (src to dst))
+            capturedKey = null
+            showTargetCapture = false
+            showTargetList = false
+        }
+        if (showTargetCapture) {
+            KeyCaptureDialog(
+                title = stringResource(R.string.physical_key_remap_choose_target, PhysicalKeyRemap.keyName(src)),
+                hint = stringResource(R.string.physical_key_remap_press_target_hint),
+                onDismiss = { capturedKey = null; showTargetCapture = false },
+                onKey = { finish(it) },
+                neutralButtonText = stringResource(R.string.physical_key_remap_pick_from_list),
+                onNeutral = { showTargetCapture = false; showTargetList = true },
+            )
+        }
+        if (showTargetList) {
+            ListPickerDialog(
+                onDismissRequest = { capturedKey = null; showTargetList = false },
+                items = PhysicalKeyRemap.allKeyCodes.filter { it != src },
+                onItemSelected = { finish(it) },
+                title = { Text(stringResource(R.string.physical_key_remap_choose_target, PhysicalKeyRemap.keyName(src))) },
+                getItemName = { PhysicalKeyRemap.keyName(it) },
+                showRadioButtons = false,
+            )
+        }
     }
+}
+
+/** Dialog that waits for a physical key press and reports its Android key code. */
+@Composable
+private fun KeyCaptureDialog(
+    title: String,
+    hint: String,
+    onDismiss: () -> Unit,
+    onKey: (Int) -> Unit,
+    neutralButtonText: String? = null,
+    onNeutral: () -> Unit = {},
+) {
+    val focusRequester = remember { FocusRequester() }
+    ConfirmationDialog(
+        onDismissRequest = onDismiss,
+        onConfirmed = onDismiss,
+        confirmButtonText = null,
+        cancelButtonText = stringResource(android.R.string.cancel),
+        neutralButtonText = neutralButtonText,
+        onNeutral = onNeutral,
+        title = { Text(title) },
+        content = {
+            LaunchedEffect(Unit) { focusRequester.requestFocus() }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester)
+                    .focusable()
+                    .onPreviewKeyEvent {
+                        val code = it.key.nativeKeyCode
+                        if (it.type == KeyEventType.KeyDown && code != KeyEvent.KEYCODE_BACK && code != KeyEvent.KEYCODE_UNKNOWN) {
+                            onKey(code)
+                            true
+                        } else false
+                    }
+            ) {
+                Text(hint)
+            }
+        }
+    )
 }
