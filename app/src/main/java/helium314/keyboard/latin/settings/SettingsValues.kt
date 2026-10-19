@@ -58,6 +58,7 @@ open class SettingsValues(
     val mShowToolbarOnly: Boolean
     val mPhysicalKeyboardSuggestionShortcuts: String
     val mPhysicalKeyboardLayout: String
+    val mPhysicalKeyRemaps: Map<Int, Int>
     val mDisplayOrientation: Int
     val mScreenProfile: helium314.keyboard.latin.utils.ScreenProfile
     // From preferences
@@ -411,6 +412,7 @@ open class SettingsValues(
         mSoundVolDelete = prefs.getFloat(Settings.PREF_SOUND_VOL_DELETE, Defaults.PREF_SOUND_VOL_DELETE)
         mSoundVolEnter = prefs.getFloat(Settings.PREF_SOUND_VOL_ENTER, Defaults.PREF_SOUND_VOL_ENTER)
         mSoundVolModifiers = prefs.getFloat(Settings.PREF_SOUND_VOL_MODIFIERS, Defaults.PREF_SOUND_VOL_MODIFIERS)
+        mPhysicalKeyRemaps = helium314.keyboard.event.PhysicalKeyRemap.parse(prefs.getString(Settings.PREF_PHYSICAL_KEY_REMAPS, Defaults.PREF_PHYSICAL_KEY_REMAPS))
         mEnableEmojiAltPhysicalKey = prefs.getBoolean(Settings.PREF_ENABLE_EMOJI_ALT_PHYSICAL_KEY, Defaults.PREF_ENABLE_EMOJI_ALT_PHYSICAL_KEY)
         mGestureMethod = prefs.getString(Settings.PREF_GESTURE_METHOD, "fallback") ?: "fallback"
         mFullKeyboardSwipe = Settings.readFullKeyboardSwipe(prefs)

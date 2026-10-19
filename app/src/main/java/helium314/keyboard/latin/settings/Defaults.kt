@@ -179,6 +179,7 @@ object Defaults {
     const val PREF_SOUND_VOL_MODIFIERS = 1.0f
     const val PREF_KEY_LONGPRESS_TIMEOUT = 300
     const val PREF_ENABLE_EMOJI_ALT_PHYSICAL_KEY = true
+    const val PREF_PHYSICAL_KEY_REMAPS = ""
     const val PREF_GESTURE_PREVIEW_TRAIL = true
     const val PREF_GESTURE_FLOATING_PREVIEW_TEXT = true
     const val PREF_GESTURE_FLOATING_PREVIEW_DYNAMIC = true

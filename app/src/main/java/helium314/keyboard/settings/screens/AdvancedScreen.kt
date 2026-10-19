@@ -89,6 +89,7 @@ fun AdvancedSettingsScreen(
         Settings.PREF_PHYSICAL_KEYBOARD_LAYOUT,
         Settings.PREF_ENABLE_EMOJI_ALT_PHYSICAL_KEY,
         Settings.PREF_PHYSICAL_KEYBOARD_SUGGESTION_SHORTCUTS,
+        Settings.PREF_PHYSICAL_KEY_REMAPS,
         Settings.PREF_CUSTOM_CURRENCY_KEY,
         Settings.PREF_TIMESTAMP_FORMAT,
         SettingsWithoutKey.BACKGROUND_SERVICES,
@@ -153,6 +154,9 @@ fun createAdvancedSettings(context: Context) = listOfNotNull(
             stringResource(R.string.physical_keyboard_shortcut_number) to "number",
         )
         ListPreference(setting, items, Defaults.PREF_PHYSICAL_KEYBOARD_SUGGESTION_SHORTCUTS)
+    },
+    Setting(context, Settings.PREF_PHYSICAL_KEY_REMAPS, R.string.physical_key_remap_title) { setting ->
+        helium314.keyboard.settings.preferences.PhysicalKeyRemapPreference(setting)
     },
     Setting(context, Settings.PREF_CUSTOM_CURRENCY_KEY, R.string.customize_currencies) { setting ->
         var showDialog by rememberSaveable { mutableStateOf(false) }
