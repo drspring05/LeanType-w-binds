@@ -56,16 +56,25 @@ object PhysicalKeyRemap {
         KeyEvent.keyCodeToString(keyCode).removePrefix("KEYCODE_").lowercase()
             .split('_').joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } }
 
+    /** True if some key is remapped to Caps Lock, in which case the keyboard keeps its own Caps Lock state. */
+    fun targetsCapsLock(rules: Map<Int, Int>): Boolean = rules.containsValue(KeyEvent.KEYCODE_CAPS_LOCK)
+
     /**
      * Returns [event] with the remapping applied, or [event] itself if nothing changes.
      * While Caps Lock is a remapped source key, its lock state is removed from the meta state,
      * so toggling it (which Android still does internally) does not turn typed letters into capitals.
+     *
+     * Android only toggles Caps Lock for the real Caps Lock key, so when a key is remapped to Caps Lock
+     * the system state is ignored and [capsLockOn] (kept by the caller, toggled on each press) is used instead.
      */
-    fun apply(event: KeyEvent, rules: Map<Int, Int>): KeyEvent {
+    fun apply(event: KeyEvent, rules: Map<Int, Int>, capsLockOn: Boolean = false): KeyEvent {
         if (rules.isEmpty()) return event
         val target = rules[event.keyCode] ?: event.keyCode
-        val stripCapsLock = rules.containsKey(KeyEvent.KEYCODE_CAPS_LOCK) && rules[KeyEvent.KEYCODE_CAPS_LOCK] != KeyEvent.KEYCODE_CAPS_LOCK
-        val meta = if (stripCapsLock) event.metaState and KeyEvent.META_CAPS_LOCK_ON.inv() else event.metaState
+        val capsLockIsTarget = targetsCapsLock(rules)
+        val stripCapsLock = capsLockIsTarget
+            || (rules.containsKey(KeyEvent.KEYCODE_CAPS_LOCK) && rules[KeyEvent.KEYCODE_CAPS_LOCK] != KeyEvent.KEYCODE_CAPS_LOCK)
+        var meta = if (stripCapsLock) event.metaState and KeyEvent.META_CAPS_LOCK_ON.inv() else event.metaState
+        if (capsLockIsTarget && capsLockOn) meta = meta or KeyEvent.META_CAPS_LOCK_ON
         if (target == event.keyCode && meta == event.metaState) return event
         return KeyEvent(event.downTime, event.eventTime, event.action, target, event.repeatCount, meta,
             event.deviceId, event.scanCode, event.flags, event.source)

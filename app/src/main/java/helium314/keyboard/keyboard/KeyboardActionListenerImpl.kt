@@ -74,6 +74,8 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
         keyboardSwitcher.onReleaseKey(primaryCode, withSliding, latinIME.currentAutoCapsState, latinIME.currentRecapitalizeState)
     }
 
+    /** Caps Lock state used when a key is remapped to Caps Lock, as Android does not toggle it for remapped keys. */
+    private var mRemappedCapsLockOn = false
     private val mConsumedPhysicalKeys = HashSet<Int>()
     private val mRemappedShortcutKeys = HashMap<Int, Int>()
     /** original key codes of remapped keys that were forwarded to the app as the remapped key */
@@ -90,7 +92,7 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
     }
 
     override fun onKeyUp(originalKeyCode: Int, originalKeyEvent: KeyEvent): Boolean {
-        val keyEvent = PhysicalKeyRemap.apply(originalKeyEvent, settings.current.mPhysicalKeyRemaps)
+        val keyEvent = PhysicalKeyRemap.apply(originalKeyEvent, settings.current.mPhysicalKeyRemaps, mRemappedCapsLockOn)
         val keyCode = keyEvent.keyCode
         emojiAltPhysicalKeyDetector.onKeyUp(keyEvent)
         if (!ProductionFlags.IS_HARDWARE_KEYBOARD_SUPPORTED)
@@ -114,11 +116,19 @@ class KeyboardActionListenerImpl(private val latinIME: LatinIME, private val inp
     }
 
     override fun onKeyDown(originalKeyCode: Int, originalKeyEvent: KeyEvent): Boolean {
-        val keyEvent = PhysicalKeyRemap.apply(originalKeyEvent, settings.current.mPhysicalKeyRemaps)
+        val remaps = settings.current.mPhysicalKeyRemaps
+        val keyEvent = PhysicalKeyRemap.apply(originalKeyEvent, remaps, mRemappedCapsLockOn)
         val keyCode = keyEvent.keyCode
         emojiAltPhysicalKeyDetector.onKeyDown(keyEvent)
         if (!ProductionFlags.IS_HARDWARE_KEYBOARD_SUPPORTED)
             return false
+
+        if (keyCode == KeyEvent.KEYCODE_CAPS_LOCK && PhysicalKeyRemap.targetsCapsLock(remaps)) {
+            // a key remapped to Caps Lock (or Caps Lock itself while such a rule exists): toggle our own state, ignore repeats
+            if (keyEvent.repeatCount == 0) mRemappedCapsLockOn = !mRemappedCapsLockOn
+            mConsumedPhysicalKeys.add(keyCode)
+            return true
+        }
 
         if (keyboardSwitcher.isShowingEmojiPalettes) {
             val emojiPalettesView = keyboardSwitcher.emojiPalettesView
